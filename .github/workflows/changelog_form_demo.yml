@@ -12,110 +12,108 @@ jobs:
     if: contains(github.event.issue.labels.*.name, 'changelog-entry')
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/github-script@v7
         with:
-          python-version: "3.13"
+          script: |
+            const body = context.payload.issue.body || ''
 
-      - name: Parse issue body & build YAML
-        id: parse
-        env:
-          BODY: ${{ github.event.issue.body }}
-        run: |
-          python3 - <<'PY'
-          import os, re, json, sys
-          from pathlib import Path
+            // Issue Forms render as: ### <Field>\n\n<value>\n\n### <Next>...
+            const sections = {}
+            let cur = null, buf = []
+            for (const line of body.split(/\r?\n/)) {
+              if (line.startsWith('### ')) {
+                if (cur) sections[cur] = buf.join('\n').trim()
+                cur = line.slice(4).trim()
+                buf = []
+              } else {
+                buf.push(line)
+              }
+            }
+            if (cur) sections[cur] = buf.join('\n').trim()
 
-          body = os.environ["BODY"] or ""
-          # Issue Forms render as: ### <Field label>\n\n<value>\n\n### <Next>...
-          sections = {}
-          current = None
-          buf: list[str] = []
-          for line in body.splitlines():
-              if line.startswith("### "):
-                  if current is not None:
-                      sections[current] = "\n".join(buf).strip()
-                  current = line[4:].strip()
-                  buf = []
-              else:
-                  buf.append(line)
-          if current is not None:
-              sections[current] = "\n".join(buf).strip()
+            const version = (sections['Version'] || '').trim()
+            const notes = (sections['Notes'] || '').trim()
 
-          def get(label: str, required: bool = False) -> str:
-              v = sections.get(label, "").strip()
-              if v == "_No response_":
-                  v = ""
-              if required and not v:
-                  print(f"::error::missing required field: {label}")
-                  sys.exit(1)
-              return v
+            const errors = []
+            if (!/^\d+\.\d+\.\d+$/.test(version)) {
+              errors.push(`Version must be X.Y.Z — got: \`${version}\``)
+            }
+            if (!notes) errors.push('Notes is empty')
 
-          version = get("ROR version", required=True)
-          if not re.fullmatch(r"\d+\.\d+\.\d+", version):
-              print(f"::error::version must be X.Y.Z, got: {version!r}")
-              sys.exit(1)
+            const TYPE_MAP = {
+              new: 'new', feat: 'new', feature: 'new',
+              fix: 'fix', bugfix: 'fix',
+              security: 'security', 'security fix': 'security', sec: 'security',
+              warning: 'warning', warn: 'warning',
+              enhancement: 'enhancement', enh: 'enhancement', improve: 'enhancement',
+            }
+            const COMP_MAP = {
+              es: ['es'], kbn: ['kbn'], 'es|kbn': ['es', 'kbn'],
+              'kbn|es': ['es', 'kbn'], both: ['es', 'kbn'],
+            }
 
-          entry_type = get("Entry type", required=True)
-          component = get("Component", required=True)
-          summary = get("Summary (one line)", required=True)
-          description = get("Long description (optional, markdown allowed)")
-          link = get("Link (CVE / forum thread / issue, optional)")
-          release_date = get("Release date (optional, YYYY-MM-DD)")
+            const entries = []
+            const lineRe = /^\s*(?<type>[\w ]+?)\s*\(\s*(?<comp>[^)]+?)\s*\)\s*:\s*(?<text>.+?)\s*$/i
 
-          type_map = {
-              "New": "feature",
-              "Fix": "fix",
-              "Security Fix": "security",
-              "Warning": "warning",
-              "Enhancement": "enhancement",
-          }
-          components_map = {
-              "ES": ["es"],
-              "KBN": ["kbn"],
-              "ES|KBN": ["es", "kbn"],
-          }
+            notes.split(/\r?\n/).forEach((raw, i) => {
+              const line = raw.trim()
+              if (!line || line.startsWith('#') || line.startsWith('//')) return
+              const m = line.match(lineRe)
+              if (!m) {
+                errors.push(`Line ${i + 1}: cannot parse \`${line}\` — expected \`<type> (<component>): <text>\``)
+                return
+              }
+              const type = TYPE_MAP[m.groups.type.toLowerCase()]
+              const comp = COMP_MAP[m.groups.comp.toLowerCase().replace(/\s+/g, '')]
+              if (!type) errors.push(`Line ${i + 1}: unknown type \`${m.groups.type}\` — use one of: ${Object.keys(TYPE_MAP).slice(0, 5).join(', ')}`)
+              if (!comp) errors.push(`Line ${i + 1}: unknown component \`${m.groups.comp}\` — use one of: es, kbn, es|kbn`)
+              if (type && comp) entries.push({ type, components: comp, text: m.groups.text })
+            })
 
-          def yaml_str(s: str, indent: int = 0) -> str:
-              if not s:
-                  return '""'
-              if "\n" in s:
-                  pad = " " * indent
-                  return "|\n" + "\n".join(f"{pad}{ln}" for ln in s.splitlines())
-              return json.dumps(s, ensure_ascii=False)
+            // Build YAML
+            const today = new Date().toISOString().slice(0, 10)
+            const yamlEsc = (s) => /[:#\[\]{}&*!|>'"%@`]|^\s|\s$/.test(s) ? JSON.stringify(s) : s
+            let yaml = `version: ${version}\nrelease_date: ${today}\nentries:\n`
+            for (const e of entries) {
+              yaml += `  - type: ${e.type}\n`
+              yaml += `    components: [${e.components.join(', ')}]\n`
+              yaml += `    text: ${yamlEsc(e.text)}\n`
+            }
 
-          lines = [
-              f"version: {version}",
-          ]
-          if release_date:
-              lines.append(f"release_date: {release_date}")
-          lines += [
-              "entries:",
-              f"  - type: {type_map[entry_type]}",
-              f"    components: {json.dumps(components_map[component])}",
-              f"    summary: {yaml_str(summary)}",
-          ]
-          if description:
-              lines.append(f"    description: {yaml_str(description, indent=6)}")
-          if link:
-              lines.append(f"    link: {yaml_str(link)}")
+            const target = `changelog/${version}.yaml`
+            const marker = '<!-- changelog-form-bot -->'
 
-          yaml_out = "\n".join(lines) + "\n"
+            let comment
+            if (errors.length) {
+              comment = `${marker}\n**Could not parse** (${errors.length} issue${errors.length > 1 ? 's' : ''}):\n\n` +
+                errors.map(e => `- ${e}`).join('\n') +
+                `\n\n_Edit the issue body to fix — this comment will refresh._`
+            } else {
+              comment = `${marker}\nParsed **${entries.length}** entr${entries.length === 1 ? 'y' : 'ies'} → would write to **\`${target}\`**:\n\n` +
+                '```yaml\n' + yaml + '```\n\n' +
+                `_Demo: real action would commit YAML, regen \`changelog.md\`, open PR._`
+            }
 
-          target = f"changelog/{version}.yaml"
-          comment = (
-              f"Parsed structured entry — would append to **`{target}`**:\n\n"
-              f"```yaml\n{yaml_out}```\n\n"
-              f"_(demo: real action would commit this YAML + regenerate `changelog.md` + open PR)_\n"
-          )
+            // Find existing bot comment and update, or create new
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            })
+            const existing = comments.find(c => c.body && c.body.includes(marker))
 
-          Path("comment.md").write_text(comment, encoding="utf-8")
-          print(yaml_out)
-          PY
-
-      - name: Post comment with parsed YAML
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          issue-number: ${{ github.event.issue.number }}
-          body-path: comment.md
-          edit-mode: replace
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: comment,
+              })
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment,
+              })
+            }

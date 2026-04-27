@@ -1,33 +1,52 @@
 # changelog-forms-demo
 
-Proof-of-concept for **Issue Forms as a UI for the ROR changelog**.
+**Two fields. One form. Single entry or whole release — same UX.**
+
 Companion to [`beshu-tech/ror-api#86`](https://github.com/beshu-tech/ror-api/issues/86).
 
-## What it does
+## Try it
 
-1. Open a [new "Changelog entry" issue](../../issues/new/choose) — fill the form (dropdowns, validated version, etc.)
-2. GitHub Action parses the form fields
-3. Bot comments back with the **structured YAML** that would be committed to `changelog/<version>.yaml`
+→ [Open new issue](../../issues/new/choose) → "Changelog"
 
-This is the *creation* path only. The full pipeline (real action) would also:
+Paste one or many lines:
 
-- Append entry to `changelog/<version>.yaml`
-- Regenerate `changelog.md` from all YAMLs (deterministic template render)
-- Open a PR; close issue on merge
-- Push to master triggers downstream LLM workflow (portal-side) — keyed off **YAML hash**, not text diff
+```
+new (es): 9.0.2, 8.18.2, 8.17.7 support
+new (kbn): 9.0.2, 8.18.2, 8.17.7 support
+fix (es): [patching on Windows](https://forum.readonlyrest.com/t/...)
+security (es): CVE-2024-53382
+```
 
-## Test it
+Submit → bot replies with structured YAML that would land in `changelog/<version>.yaml`. Edit the issue → bot refreshes its comment.
 
-→ [Open new issue](../../issues/new/choose) → pick "Changelog entry"
+## Format
 
-Try valid input first, then break it: leave version blank, type "1.68", invalid characters — the form blocks required fields, the action validates the version regex.
+`<type> (<component>): <text>`
+
+- **type**: `new`, `fix`, `security`, `warning`, `enhancement` (aliases: `feat`, `bugfix`, `sec`, `enh`)
+- **component**: `es`, `kbn`, `es|kbn`
+- **text**: any markdown — links, code, etc.
+
+Lines starting with `#` or `//` are ignored.
+
+## Why so few fields
+
+Audited 798 entries from real `changelog.md`. 99% fit `<type> (<component>): <text>`. ~1.5% edge cases (`KBN < 7.9.0`, `KBN|PRO`) are handled by editing the generated YAML directly. Date is always per-version, defaults to today.
+
+Anything beyond what survives that audit was friction without payoff.
 
 ## Editing existing entries
 
-**Out of scope** for forms/CLI. Edits = direct PR on the YAML file. That's git's strength; no tool needed.
+**Out of scope.** Edits = PR on the YAML file. Devs already PR daily; no UI helps here.
+
+For "add 1.0.1 to existing Kibana support" → file a new entry: `new (kbn): 1.0.1 support`. Render-time grouping handles presentation.
+
+## Stack
+
+One official action: `actions/github-script@v7`. Pure JS parser inline. Zero third-party deps, no Python step. Cold-start ≈ 5s.
 
 ## Files
 
-- `.github/ISSUE_TEMPLATE/changelog-entry.yml` — the form schema
+- `.github/ISSUE_TEMPLATE/changelog-entry.yml` — the form (2 fields)
 - `.github/ISSUE_TEMPLATE/config.yml` — disables blank issues
-- `.github/workflows/changelog_form_demo.yml` — parse + comment action
+- `.github/workflows/changelog_form_demo.yml` — parse + comment (single step)
