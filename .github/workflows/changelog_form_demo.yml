@@ -1,0 +1,121 @@
+name: Changelog form demo
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  parse-and-comment:
+    if: contains(github.event.issue.labels.*.name, 'changelog-entry')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Parse issue body & build YAML
+        id: parse
+        env:
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          python3 - <<'PY'
+          import os, re, json, sys
+          from pathlib import Path
+
+          body = os.environ["BODY"] or ""
+          # Issue Forms render as: ### <Field label>\n\n<value>\n\n### <Next>...
+          sections = {}
+          current = None
+          buf: list[str] = []
+          for line in body.splitlines():
+              if line.startswith("### "):
+                  if current is not None:
+                      sections[current] = "\n".join(buf).strip()
+                  current = line[4:].strip()
+                  buf = []
+              else:
+                  buf.append(line)
+          if current is not None:
+              sections[current] = "\n".join(buf).strip()
+
+          def get(label: str, required: bool = False) -> str:
+              v = sections.get(label, "").strip()
+              if v == "_No response_":
+                  v = ""
+              if required and not v:
+                  print(f"::error::missing required field: {label}")
+                  sys.exit(1)
+              return v
+
+          version = get("ROR version", required=True)
+          if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+              print(f"::error::version must be X.Y.Z, got: {version!r}")
+              sys.exit(1)
+
+          entry_type = get("Entry type", required=True)
+          component = get("Component", required=True)
+          summary = get("Summary (one line)", required=True)
+          description = get("Long description (optional, markdown allowed)")
+          link = get("Link (CVE / forum thread / issue, optional)")
+          release_date = get("Release date (optional, YYYY-MM-DD)")
+
+          type_map = {
+              "New": "feature",
+              "Fix": "fix",
+              "Security Fix": "security",
+              "Warning": "warning",
+              "Enhancement": "enhancement",
+          }
+          components_map = {
+              "ES": ["es"],
+              "KBN": ["kbn"],
+              "ES|KBN": ["es", "kbn"],
+          }
+
+          def yaml_str(s: str, indent: int = 0) -> str:
+              if not s:
+                  return '""'
+              if "\n" in s:
+                  pad = " " * indent
+                  return "|\n" + "\n".join(f"{pad}{ln}" for ln in s.splitlines())
+              return json.dumps(s, ensure_ascii=False)
+
+          lines = [
+              f"version: {version}",
+          ]
+          if release_date:
+              lines.append(f"release_date: {release_date}")
+          lines += [
+              "entries:",
+              f"  - type: {type_map[entry_type]}",
+              f"    components: {json.dumps(components_map[component])}",
+              f"    summary: {yaml_str(summary)}",
+          ]
+          if description:
+              lines.append(f"    description: {yaml_str(description, indent=6)}")
+          if link:
+              lines.append(f"    link: {yaml_str(link)}")
+
+          yaml_out = "\n".join(lines) + "\n"
+
+          target = f"changelog/{version}.yaml"
+          comment = (
+              f"Parsed structured entry — would append to **`{target}`**:\n\n"
+              f"```yaml\n{yaml_out}```\n\n"
+              f"_(demo: real action would commit this YAML + regenerate `changelog.md` + open PR)_\n"
+          )
+
+          Path("comment.md").write_text(comment, encoding="utf-8")
+          print(yaml_out)
+          PY
+
+      - name: Post comment with parsed YAML
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body-path: comment.md
+          edit-mode: replace

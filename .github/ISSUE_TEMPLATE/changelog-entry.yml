@@ -1,0 +1,71 @@
+name: Changelog entry
+description: Add an entry to the ROR changelog (demo)
+title: "[Changelog] "
+labels: ["changelog-entry"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Add a changelog entry
+        Fill the fields below — a bot will reply with the structured YAML
+        that would be appended to `changelog/<version>.yaml`.
+
+  - type: input
+    id: version
+    attributes:
+      label: ROR version
+      placeholder: "1.68.0"
+      description: Format X.Y.Z
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Entry type
+      options:
+        - New
+        - Fix
+        - Security Fix
+        - Warning
+        - Enhancement
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - ES
+        - KBN
+        - ES|KBN
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary (one line)
+      placeholder: "9.0.2, 8.18.2, 8.17.7 support"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Long description (optional, markdown allowed)
+      placeholder: |
+        Additional context, behavior changes, migration notes...
+
+  - type: input
+    id: link
+    attributes:
+      label: Link (CVE / forum thread / issue, optional)
+      placeholder: "https://forum.readonlyrest.com/t/..."
+
+  - type: input
+    id: release_date
+    attributes:
+      label: Release date (optional, YYYY-MM-DD)
+      placeholder: "2026-04-25"
