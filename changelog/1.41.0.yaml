@@ -3,7 +3,8 @@ release_date: 2022-06-21
 entries:
   - type: new
     components: [es]
-    text: "Added groups_and mode to [ror_kbn_auth](https://docs.readonlyrest.com/elasticsearch#ror_kbn_auth) and jwt_auth rules"
+    text: "Added groups_and mode to [ror_kbn_auth](https://docs.readonlyrest.com/elasticsearch#ror_kbn_auth) and [jwt_auth](https://docs.readonlyrest.com/elasticsearch#jwt_auth) rules"
+  
   - type: enhancement
     components: [kbn]
     text: Prevent native credentials dialogue to appear in Kibana when ES responds 401
