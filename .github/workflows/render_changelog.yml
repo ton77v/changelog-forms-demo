@@ -53,6 +53,7 @@ jobs:
             const compStr = (cs) => cs.map(c => c.toUpperCase()).join('|')
 
             let md = '# Changelog\n\n'
+            md += '<!-- AUTO-GENERATED from changelog/*.yaml — do not edit directly -->\n\n'
             for (const r of releases) {
               md += `### (${r.release_date}) What's new in **ROR ${r.version}**\n`
               for (const e of r.entries) {
