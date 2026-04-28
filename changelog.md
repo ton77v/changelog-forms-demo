@@ -1,5 +1,7 @@
 # Changelog
 
+<!-- AUTO-GENERATED from changelog/*.yaml — do not edit directly -->
+
 ### (2026-04-28) What's new in **ROR 1.41.0**
 * **🚀New** (ES) Added groups_and mode to [ror_kbn_auth](https://docs.readonlyrest.com/elasticsearch#ror_kbn_auth) and jwt_auth rules
 * **🧐Enhancement** (KBN) Prevent native credentials dialogue to appear in Kibana when ES responds 401
