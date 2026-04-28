@@ -11,17 +11,17 @@ Companion to [`beshu-tech/ror-api#86`](https://github.com/beshu-tech/ror-api/iss
 Paste one or many lines:
 
 ```
-new (es): 9.0.2, 8.18.2, 8.17.7 support
-new (kbn): 9.0.2, 8.18.2, 8.17.7 support
-fix (es): [patching on Windows](https://forum.readonlyrest.com/t/...)
-security (es): CVE-2024-53382
+new (es) 9.0.2, 8.18.2, 8.17.7 support
+new (kbn) 9.0.2, 8.18.2, 8.17.7 support
+fix (es) [patching on Windows](https://forum.readonlyrest.com/t/...)
+security (es) CVE-2024-53382
 ```
 
 Submit → bot replies with structured YAML that would land in `changelog/<version>.yaml`. Edit the issue → bot refreshes its comment.
 
 ## Format
 
-`<type> (<component>): <text>`
+`<type> (<component>) <text>` — matches existing `changelog.md` style. Optional colon also accepted.
 
 - **type**: `new`, `fix`, `security`, `warning`, `enhancement` (aliases: `feat`, `bugfix`, `sec`, `enh`)
 - **component**: `es`, `kbn`, `es|kbn`

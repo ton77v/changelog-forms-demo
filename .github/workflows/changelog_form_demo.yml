@@ -60,7 +60,8 @@ jobs:
             }
 
             const entries = []
-            const lineRe = /^\s*(?<type>[\w ]+?)\s*\(\s*(?<comp>[^)]+?)\s*\)\s*:\s*(?<text>.+?)\s*$/i
+            // colon optional — matches existing changelog.md style: `New (ES) Added...`
+            const lineRe = /^\s*(?<type>[\w ]+?)\s*\(\s*(?<comp>[^)]+?)\s*\)\s*:?\s*(?<text>.+?)\s*$/i
 
             notes.split(/\r?\n/).forEach((raw, i) => {
               const line = raw.trim()
