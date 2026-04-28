@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build releases JSON
+      - name: Build releases JSON (with filename)
         run: |
           echo '[' > all.json
           first=true
@@ -24,7 +24,8 @@ jobs:
             [ -f "$f" ] || continue
             $first || echo ',' >> all.json
             first=false
-            yq -o json "$f" >> all.json
+            fname=$(basename "$f" .yaml)
+            yq -o json ". + {\"_filename\": \"$fname\"}" "$f" >> all.json
           done
           echo ']' >> all.json
 
@@ -35,11 +36,21 @@ jobs:
             const fs = require('fs')
             const releases = JSON.parse(fs.readFileSync('all.json', 'utf8'))
 
-            // Sort by semver desc
+            // Validate: filename must match inner `version` (single source of truth)
+            const mismatches = releases.filter(r => r._filename !== r.version)
+            if (mismatches.length) {
+              for (const r of mismatches) {
+                core.error(`filename ${r._filename}.yaml does not match inner version: ${r.version}`)
+              }
+              core.setFailed(`${mismatches.length} file(s) with filename/version mismatch — rename file or fix version field`)
+              return
+            }
+
+            // Sort by semver desc — inner `version` field is canonical
             releases.sort((a, b) => {
               const va = a.version.split('.').map(Number)
               const vb = b.version.split('.').map(Number)
-              for (let i = 0; i < 3; i++) if (va[i] !== vb[i]) return vb[i] - va[i]
+              for (let i = 0; i < 3; i++) if ((va[i] || 0) !== (vb[i] || 0)) return (vb[i] || 0) - (va[i] || 0)
               return 0
             })
 
