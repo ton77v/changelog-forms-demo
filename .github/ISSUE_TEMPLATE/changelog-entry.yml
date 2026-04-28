@@ -1,6 +1,6 @@
 name: Changelog
 description: Add changelog entries (one or many)
-title: "[Changelog] "
+title: "[Changelog] (auto-renamed on submit)"
 labels: ["changelog-entry"]
 body:
   - type: markdown

@@ -32,7 +32,14 @@ jobs:
             if (cur) sections[cur] = buf.join('\n').trim()
 
             const version = (sections['Version'] || '').trim()
-            const notes = (sections['Notes'] || '').trim()
+            // `render: text` in the form wraps notes in ```text ... ``` — strip the fence
+            const stripFence = (s) => {
+              const lines = s.split(/\r?\n/)
+              if (lines[0] && /^```/.test(lines[0].trim())) lines.shift()
+              if (lines.length && /^```/.test((lines[lines.length - 1] || '').trim())) lines.pop()
+              return lines.join('\n')
+            }
+            const notes = stripFence((sections['Notes'] || '').trim()).trim()
 
             const errors = []
             if (!/^\d+\.\d+\.\d+$/.test(version)) {
@@ -92,6 +99,22 @@ jobs:
               comment = `${marker}\nParsed **${entries.length}** entr${entries.length === 1 ? 'y' : 'ies'} → would write to **\`${target}\`**:\n\n` +
                 '```yaml\n' + yaml + '```\n\n' +
                 `_Demo: real action would commit YAML, regen \`changelog.md\`, open PR._`
+            }
+
+            // Auto-rename title if parse succeeded
+            if (!errors.length && entries.length) {
+              const summary = entries.length === 1
+                ? `${entries[0].type} (${entries[0].components.join('|')}): ${entries[0].text}`.slice(0, 80)
+                : `${entries.length} entries`
+              const newTitle = `[Changelog ${version}] ${summary}`
+              if (context.payload.issue.title !== newTitle) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  title: newTitle,
+                })
+              }
             }
 
             // Find existing bot comment and update, or create new
