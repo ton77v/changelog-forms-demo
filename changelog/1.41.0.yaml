@@ -1,0 +1,15 @@
+version: 1.41.0
+release_date: 2026-04-28  # auto-set to submission day — edit this if it's wrong
+entries:
+  - type: new
+    components: [es]
+    text: "Added groups_and mode to [ror_kbn_auth](https://docs.readonlyrest.com/elasticsearch#ror_kbn_auth) and jwt_auth rules"
+  - type: enhancement
+    components: [kbn]
+    text: Prevent native credentials dialogue to appear in Kibana when ES responds 401
+  - type: fix
+    components: [es, kbn]
+    text: "tenancy selector didn't work well with jwt_auth and ror_kbn_auth rules"
+  - type: fix
+    components: [kbn]
+    text: OIDC connector not working in Kibana < 7.12.0

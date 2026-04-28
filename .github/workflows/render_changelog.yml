@@ -1,0 +1,76 @@
+name: Render changelog.md
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "changelog/**.yaml"
+      - ".github/workflows/render_changelog.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build releases JSON
+        run: |
+          echo '[' > all.json
+          first=true
+          for f in changelog/*.yaml; do
+            [ -f "$f" ] || continue
+            $first || echo ',' >> all.json
+            first=false
+            yq -o json "$f" >> all.json
+          done
+          echo ']' >> all.json
+
+      - name: Render changelog.md
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            const releases = JSON.parse(fs.readFileSync('all.json', 'utf8'))
+
+            // Sort by semver desc
+            releases.sort((a, b) => {
+              const va = a.version.split('.').map(Number)
+              const vb = b.version.split('.').map(Number)
+              for (let i = 0; i < 3; i++) if (va[i] !== vb[i]) return vb[i] - va[i]
+              return 0
+            })
+
+            const TYPE_EMOJI = {
+              new: '🚀New',
+              fix: '🐞Fix',
+              security: '🚨Security Fix',
+              warning: '⚠️Warning',
+              enhancement: '🧐Enhancement',
+            }
+            const compStr = (cs) => cs.map(c => c.toUpperCase()).join('|')
+
+            let md = '# Changelog\n\n'
+            for (const r of releases) {
+              md += `### (${r.release_date}) What's new in **ROR ${r.version}**\n`
+              for (const e of r.entries) {
+                const label = TYPE_EMOJI[e.type] || e.type
+                md += `* **${label}** (${compStr(e.components)}) ${e.text}\n`
+              }
+              md += '\n'
+            }
+            fs.writeFileSync('changelog.md', md)
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add changelog.md
+          if git diff --cached --quiet; then
+            echo "no change"
+          else
+            git commit -m "regen changelog.md from YAMLs"
+            git push
+          fi

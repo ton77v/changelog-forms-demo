@@ -37,9 +37,23 @@ Anything beyond what survives that audit was friction without payoff.
 
 ## Editing existing entries
 
-**Out of scope.** Edits = PR on the YAML file. Devs already PR daily; no UI helps here.
+**No form needed — edit the YAML directly.**
 
-For "add 1.0.1 to existing Kibana support" → file a new entry: `new (kbn): 1.0.1 support`. Render-time grouping handles presentation.
+Try it: open [`changelog/1.41.0.yaml`](changelog/1.41.0.yaml) → click the pencil → fix the wrong `release_date` (auto-set to today, real value should be `2022-06-21`) → "Propose change" → opens PR.
+
+On merge to `main`, the **render workflow** regenerates [`changelog.md`](changelog.md) automatically. No manual MD editing ever.
+
+Adding `1.0.1` to an existing "Kibana 1.0.0 support" entry? Open the YAML, change `1.0.0` to `1.0.0, 1.0.1`. Done. Same flow for any in-place fix.
+
+## End-to-end loop
+
+```
+Form    →   bot parses   →   (real action) commits YAML   →   PR
+                                                                ↓
+changelog.md  ←  render workflow  ←  merge to main
+```
+
+Three primitives: a form, a YAML file, a render. No DB, no admin UI, no extra tool.
 
 ## Stack
 
@@ -49,4 +63,7 @@ One official action: `actions/github-script@v7`. Pure JS parser inline. Zero thi
 
 - `.github/ISSUE_TEMPLATE/changelog-entry.yml` — the form (2 fields)
 - `.github/ISSUE_TEMPLATE/config.yml` — disables blank issues
-- `.github/workflows/changelog_form_demo.yml` — parse + comment (single step)
+- `.github/workflows/changelog_form_demo.yml` — parse form + comment (single step)
+- `.github/workflows/render_changelog.yml` — regen `changelog.md` from YAMLs on push
+- `changelog/1.41.0.yaml` — example YAML (single source of truth per release)
+- `changelog.md` — auto-generated; editing this file is wrong, edit the YAML
