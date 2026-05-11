@@ -73,11 +73,14 @@ jobs:
               warning: 'warning', warn: 'warning',
               enhancement: 'enhancement', enh: 'enhancement', improve: 'enhancement',
             }
-            // Components: es, kbn, eck — combinable with `|` (es|kbn, kbn|eck, es|kbn|eck, ...)
-            // Canonical output order: es, kbn, eck (matches existing changelog.md convention)
+            // Components: es, kbn, eck — combinable via any of `|`, `/`, `&`, `,`, ` and `.
+            // Real changelog.md uses mixed separators (`KBN/ES`, `ES & KBN`, etc); we normalize.
+            // Canonical output order: es, kbn, eck (matches dominant pattern in existing changelog.md).
+            // Edge cases (~0.7%: `KBN-PRO`, `KBN < 7.9.x`) are rejected here → user edits YAML directly.
             const COMP_ORDER = ['es', 'kbn', 'eck']
             const parseComps = (raw) => {
-              const parts = raw.toLowerCase().replace(/\s+/g, '').split('|').filter(Boolean)
+              const normalized = raw.toLowerCase().replace(/\s+and\s+/g, '|').replace(/[\/&,]/g, '|')
+              const parts = normalized.replace(/\s+/g, '').split('|').filter(Boolean)
               if (!parts.length) return null
               const unknown = parts.filter(p => !COMP_ORDER.includes(p))
               if (unknown.length) return null

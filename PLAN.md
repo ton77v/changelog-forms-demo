@@ -147,7 +147,9 @@ gh label create changelog-entry --repo {owner}/{repo} \
   - For each version: extract bullets, parse `* **{emoji}{Type}** ({Component}) {text}`
   - Map emoji+label → schema enum (`🚀New` → `new`, `🐞Fix` → `fix`, `🚨Security Fix` → `security`, `⚠️Warning` → `warning`, `🧐Enhancement` → `enhancement`)
   - Components: `ES` → `[es]`, `KBN` → `[kbn]`, `ECK` → `[eck]`, combinable via `|` (e.g. `ES|KBN` → `[es, kbn]`, `KBN|ECK` → `[kbn, eck]`)
-  - Edge cases (~1.5%: `KBN < 7.9.0`, `KBN|PRO`): emit YAML with raw component string + flag for manual fix
+  - **Multi-separator handling** (576-entry audit of real `changelog.md`): real data uses mixed `|`, `/`, `&`, ` and ` (e.g. `KBN/ES` × 6, `ES & KBN` × 1). Form parser normalizes all → canonical `|`. Migration script must do the same. Render writes `ES|KBN`.
+  - **Emoji spacing** (`🚀New` vs `🚀 New`): both appear in real data. Render emits no-space form. Hash-stable: `strip_markdown` + `off_spaces` collapses both → same hash. Render-only cosmetic diff post-migration.
+  - Edge cases (~0.7% of 576: `KBN-PRO` × 1, `KBN < 7.9.x` × 1, `KBN < 7.9.0` × 1): emit YAML with raw component string + flag for manual fix. Form rejects these for ongoing use → maintainer edits YAML manually.
   - Date: parse from `### (YYYY-MM-DD) What's new in **ROR X.Y.Z**` heading
   - Output: `readonlyrest-docs/changelog/{version}.yaml`
 - LLM-assist (Claude API) only for the ~1.5% ambiguous cases — not the 98%+ that fit clean regex
