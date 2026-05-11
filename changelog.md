@@ -2,6 +2,13 @@
 
 <!-- AUTO-GENERATED from changelog/*.yaml — do not edit directly -->
 
+### (2026-05-11) What's new in **ROR 1.69.1**
+* **🚨Security Fix** (KBN) Fixed vulnerability [CVE-2026-2950](https://nvd.nist.gov/vuln/detail/CVE-2026-2950)
+* **🚀New** (KBN) 9.4.0 9.3.4, 9.3.3, 9.2.8, 8.19.15, 8.19.14 support
+* **🚀New** (ES) 9.3.4, 9.3.3, 9.2.8, 8.19.15, 8.19.14 support
+* **🚀New** (ECK) 3.4.0 support
+* **🐞Fix** (KBN) Fixed `jsonwebtoken-ancient` being stripped from Kibana builds earlier than 7.11.0
+
 ### (2026-05-11) What's new in **ROR 1.68.0**
 * **🐞Fix** (KBN) Fixed `jsonwebtoken-ancient` being stripped from Kibana builds earlier than 7.11.0 or smth like that
 
