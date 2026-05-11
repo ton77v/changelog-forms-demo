@@ -1,0 +1,6 @@
+version: "1.68.0"
+release_date: "2026-05-11"
+entries:
+  - type: fix
+    components: [kbn]
+    text: "Fixed `jsonwebtoken-ancient` being stripped from Kibana builds earlier than 7.11.0 or smth like that"
