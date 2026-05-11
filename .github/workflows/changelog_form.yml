@@ -187,19 +187,48 @@ jobs:
           add-paths: |
             changelog/*.yaml
 
+      # Read changelog-form config (committed to repo at .github/changelog-config.yml).
+      # Adjusting auto_merge etc. = open a PR against the config file, not a UI flip.
+      - name: Read config
+        id: cfg
+        run: |
+          if [ -f .github/changelog-config.yml ]; then
+            echo "auto_merge=$(yq -r '.auto_merge // false' .github/changelog-config.yml)" >> "$GITHUB_OUTPUT"
+          else
+            echo "auto_merge=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Auto-merge toggle. Enable by setting `auto_merge: true` in .github/changelog-config.yml.
+      # With `--auto`, GitHub waits for required status checks (branch protection) before merging;
+      # if no checks required, merges immediately.
+      # CAVEAT: bot-authored PRs from GITHUB_TOKEN don't trigger CI (recursion guard).
+      # For a true "wait for green CI" gate in prod: use a PAT in the create-pr step above,
+      # AND set branch protection with validate-and-render required.
+      - name: Enable auto-merge
+        if: steps.parse.outputs.ok == 'true' && steps.cpr.outputs.pull-request-url && steps.cfg.outputs.auto_merge == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
+        run: gh pr merge --auto --squash --delete-branch "$PR_URL"
+
       - name: Comment PR link on issue and close
         if: steps.parse.outputs.ok == 'true' && steps.cpr.outputs.pull-request-url
         uses: actions/github-script@v7
         env:
           PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
           PR_OP: ${{ steps.cpr.outputs.pull-request-operation }}
+          AUTOMERGE: ${{ steps.cfg.outputs.auto_merge }}
         with:
           script: |
             const marker = '<!-- changelog-form-bot -->'
             const op = process.env.PR_OP
             const url = process.env.PR_URL
+            const automerge = process.env.AUTOMERGE === 'true'
             const verb = op === 'created' ? 'Opened' : 'Updated'
-            const body = `${marker}\n${verb} ${url}\n\n_Edit the YAML directly in the PR for fixes. Merge will trigger \`changelog.md\` regen._`
+            const automergeNote = automerge
+              ? '\n\n_Auto-merge enabled (`.github/changelog-config.yml`) — will merge once required checks pass._'
+              : '\n\n_Edit the YAML directly in the PR for fixes. Merge will trigger `changelog.md` regen._'
+            const body = `${marker}\n${verb} ${url}${automergeNote}`
             const ref = {
               owner: context.repo.owner,
               repo: context.repo.repo,

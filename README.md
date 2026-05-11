@@ -71,6 +71,23 @@ Three primitives: a form, a YAML file, a render. No DB, no admin UI, no extra to
 - **Pre-release sorting**: `1.69.0-rc1` orders correctly vs `1.69.0` (uses `semver.rcompare`)
 - **Validation on PR**: `pull_request` trigger runs schema + filename check before merge
 
+## Config
+
+[`.github/changelog-config.yml`](.github/changelog-config.yml) — single source for form behavior. Changes go through PR review like any other code.
+
+| Key | Default | Effect |
+|---|---|---|
+| `auto_merge` | `false` | Maintainer reviews + clicks merge |
+| `auto_merge: true` | — | Form-opened PR is auto-merged once required checks pass (or immediately if none required) |
+
+**Prerequisite for `auto_merge: true`**: "Allow auto-merge" must be enabled in Settings → General. Set via API:
+
+```bash
+gh api -X PATCH repos/{owner}/{repo} -F allow_auto_merge=true
+```
+
+**To make auto-merge wait on real CI** (vs merging instantly when no checks required): use a PAT in `changelog_form.yml` (replace `secrets.GITHUB_TOKEN` in the `create-pull-request` step) **and** add branch protection requiring the `validate-and-render` check. Without that, bot-authored PRs skip CI (GH recursion guard).
+
 ## Stack
 
 Two npm deps installed per-run: `ajv-cli` (schema), `semver` (sort). One official action: `actions/github-script@v7`. One community action: `peter-evans/create-pull-request@v6` (idempotent branch + PR). Pure JS inline elsewhere.
@@ -83,6 +100,7 @@ Two npm deps installed per-run: `ajv-cli` (schema), `semver` (sort). One officia
 - `.github/workflows/changelog_form.yml` — parse form + write YAML + open PR
 - `.github/workflows/render_changelog.yml` — validate + regen `changelog.md`
 - `.github/schemas/changelog-entry.schema.json` — single source of YAML truth
+- `.github/changelog-config.yml` — form behavior settings (auto-merge etc.)
 - `changelog/1.41.0.yaml` — example YAML (single source of truth per release)
 - `changelog.md` — auto-generated; editing this file is wrong, edit the YAML
 - [`PLAN.md`](PLAN.md) — full migration plan across 3 repos
