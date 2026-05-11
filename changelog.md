@@ -12,6 +12,10 @@
 ### (2026-05-11) What's new in **ROR 1.68.0**
 * **🐞Fix** (KBN) Fixed `jsonwebtoken-ancient` being stripped from Kibana builds earlier than 7.11.0 or smth like that
 
+### (2026-05-11) What's new in **ROR 1.67.2**
+* **🚀New** (KBN) 9.2.1, 9.1.7, 8.19.7 support
+* **🚀New** (ES) 9.2.1, 9.1.7, 8.19.7 support
+
 ### (2022-06-21) What's new in **ROR 1.41.0**
 * **🚀New** (ES) Added groups_and mode to [ror_kbn_auth](https://docs.readonlyrest.com/elasticsearch#ror_kbn_auth) and [jwt_auth](https://docs.readonlyrest.com/elasticsearch#jwt_auth) rules
 * **🧐Enhancement** (KBN) Prevent native credentials dialogue to appear in Kibana when ES responds 401
