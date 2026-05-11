@@ -1,0 +1,9 @@
+version: "1.67.2"
+release_date: "2026-05-11"
+entries:
+  - type: new
+    components: [kbn]
+    text: 9.2.1, 9.1.7, 8.19.7 support
+  - type: new
+    components: [es]
+    text: 9.2.1, 9.1.7, 8.19.7 support
