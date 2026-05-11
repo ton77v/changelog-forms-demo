@@ -125,10 +125,12 @@ jobs:
               return
             }
 
-            // Today is intentional — release date defaults to filing day; editable in PR
+            // Today is intentional — release date defaults to filing day; editable in PR.
+            // Dates and versions are ALWAYS quoted: js-yaml parses unquoted dates as Date
+            // objects, breaking ajv's `type: string` check.
             const today = new Date().toISOString().slice(0, 10)
             const yamlEsc = (s) => /[:#\[\]{}&*!|>'"%@`]|^\s|\s$/.test(s) ? JSON.stringify(s) : s
-            let yaml = `version: ${version}\nrelease_date: ${today}\nentries:\n`
+            let yaml = `version: "${version}"\nrelease_date: "${today}"\nentries:\n`
             for (const e of entries) {
               yaml += `  - type: ${e.type}\n`
               yaml += `    components: [${e.components.join(', ')}]\n`
