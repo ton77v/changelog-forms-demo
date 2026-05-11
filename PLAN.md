@@ -67,6 +67,16 @@ gh label create changelog-entry --repo {owner}/{repo} \
 
 `.github/ISSUE_TEMPLATE/config.yml` should have `blank_issues_enabled: false`. GitHub's native "Maintainers only" badge appears on Blank issue under this setting; can't be applied to custom forms.
 
+### 4. (Optional, recommended for prod once trusted) Auto-merge
+
+Configured in `.github/changelog-config.yml` — `auto_merge: true` makes form-opened PRs auto-merge once required checks pass.
+
+Requires:
+- "Allow auto-merge" on at repo: `gh api -X PATCH repos/{owner}/{repo} -F allow_auto_merge=true`
+- For the gate to actually block on CI (not just merge instantly): PAT in `changelog_form.yml` replacing `secrets.GITHUB_TOKEN` + branch protection requiring `validate-and-render`. Without that, bot-authored PRs skip CI (GH recursion guard) and the toggle effectively becomes "merge immediately."
+
+Prod rollout: ship with `auto_merge: false`, team manually reviews PRs first releases, then PR-flip the config to `true` once trusted.
+
 ---
 
 ## Phase 1 — Demo polish (`ton77v/changelog-forms-demo`)
