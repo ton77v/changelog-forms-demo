@@ -25,6 +25,50 @@ Replacing fragile `changelog.md` flow at `beshu-tech/readonlyrest-docs` with str
 
 ---
 
+## Repo setup prerequisites (apply once, every target repo)
+
+These are **repo-level settings**, not code. The workflow files won't function without them. Apply in `ton77v/changelog-forms-demo` (done), `beshu-tech/readonlyrest-docs` (Phase 3), and any other target repo.
+
+### 1. Allow Actions to create PRs
+
+**Without this**: `peter-evans/create-pull-request@v6` fails at the final API call with:
+> `##[error]GitHub Actions is not permitted to create or approve pull requests.`
+
+(The branch push succeeds — only the PR-open call is blocked.)
+
+**Fix** — Settings → Actions → General → Workflow permissions → check **"Allow GitHub Actions to create and approve pull requests"**.
+
+Or via API (faster, idempotent):
+
+```bash
+gh api -X PUT repos/{owner}/{repo}/actions/permissions/workflow \
+  -F default_workflow_permissions=read \
+  -F can_approve_pull_request_reviews=true
+```
+
+Verify:
+```bash
+gh api repos/{owner}/{repo}/actions/permissions/workflow
+# expect: {"default_workflow_permissions":"read","can_approve_pull_request_reviews":true}
+```
+
+`default_workflow_permissions` stays `read` — our workflows declare needed perms inline (`contents: write`, `pull-requests: write`). Don't widen the global default.
+
+### 2. Issue labels
+
+Form action applies `changelog-entry` label, gate filters on it. GitHub auto-creates labels on first use, but for clarity:
+
+```bash
+gh label create changelog-entry --repo {owner}/{repo} \
+  --description "Auto-applied by Changelog entry form" --color 0E8A16
+```
+
+### 3. (Optional) Disable blank issues
+
+`.github/ISSUE_TEMPLATE/config.yml` should have `blank_issues_enabled: false`. GitHub's native "Maintainers only" badge appears on Blank issue under this setting; can't be applied to custom forms.
+
+---
+
 ## Phase 1 — Demo polish (`ton77v/changelog-forms-demo`)
 
 ### Add: maintainer gate
