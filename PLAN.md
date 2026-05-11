@@ -102,7 +102,7 @@ Replacing fragile `changelog.md` flow at `beshu-tech/readonlyrest-docs` with str
   - Port parser from `src/integrations/repos/changelog/parse_changelog.py` (lines 37-58: `is_version_line`, `parse_version_details`)
   - For each version: extract bullets, parse `* **{emoji}{Type}** ({Component}) {text}`
   - Map emoji+label → schema enum (`🚀New` → `new`, `🐞Fix` → `fix`, `🚨Security Fix` → `security`, `⚠️Warning` → `warning`, `🧐Enhancement` → `enhancement`)
-  - Components: `ES` → `[es]`, `KBN` → `[kbn]`, `ES|KBN` → `[es, kbn]`
+  - Components: `ES` → `[es]`, `KBN` → `[kbn]`, `ECK` → `[eck]`, combinable via `|` (e.g. `ES|KBN` → `[es, kbn]`, `KBN|ECK` → `[kbn, eck]`)
   - Edge cases (~1.5%: `KBN < 7.9.0`, `KBN|PRO`): emit YAML with raw component string + flag for manual fix
   - Date: parse from `### (YYYY-MM-DD) What's new in **ROR X.Y.Z**` heading
   - Output: `readonlyrest-docs/changelog/{version}.yaml`

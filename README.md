@@ -26,7 +26,7 @@ On parse error → bot posts an updateable comment on the issue. Fix the form bo
 `<type> (<component>) <text>` — matches existing `changelog.md` style. Optional colon also accepted.
 
 - **type**: `new`, `fix`, `security`, `warning`, `enhancement` (aliases: `feat`, `bugfix`, `sec`, `enh`)
-- **component**: `es`, `kbn`, `es|kbn`
+- **component**: `es`, `kbn`, `eck` — combinable with `|` (e.g. `es|kbn`, `kbn|eck`, `es|kbn|eck`)
 - **text**: any markdown — links, code, etc.
 
 Lines starting with `#` or `//` are ignored.

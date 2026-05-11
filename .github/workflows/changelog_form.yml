@@ -73,9 +73,15 @@ jobs:
               warning: 'warning', warn: 'warning',
               enhancement: 'enhancement', enh: 'enhancement', improve: 'enhancement',
             }
-            const COMP_MAP = {
-              es: ['es'], kbn: ['kbn'], 'es|kbn': ['es', 'kbn'],
-              'kbn|es': ['es', 'kbn'], both: ['es', 'kbn'],
+            // Components: es, kbn, eck — combinable with `|` (es|kbn, kbn|eck, es|kbn|eck, ...)
+            // Canonical output order: es, kbn, eck (matches existing changelog.md convention)
+            const COMP_ORDER = ['es', 'kbn', 'eck']
+            const parseComps = (raw) => {
+              const parts = raw.toLowerCase().replace(/\s+/g, '').split('|').filter(Boolean)
+              if (!parts.length) return null
+              const unknown = parts.filter(p => !COMP_ORDER.includes(p))
+              if (unknown.length) return null
+              return COMP_ORDER.filter(c => parts.includes(c))
             }
 
             const entries = []
@@ -90,9 +96,9 @@ jobs:
                 return
               }
               const type = TYPE_MAP[m.groups.type.toLowerCase()]
-              const comp = COMP_MAP[m.groups.comp.toLowerCase().replace(/\s+/g, '')]
+              const comp = parseComps(m.groups.comp)
               if (!type) errors.push(`Line ${i + 1}: unknown type \`${m.groups.type}\` — use one of: new, fix, security, warning, enhancement`)
-              if (!comp) errors.push(`Line ${i + 1}: unknown component \`${m.groups.comp}\` — use one of: es, kbn, es|kbn`)
+              if (!comp) errors.push(`Line ${i + 1}: unknown component \`${m.groups.comp}\` — use one of: es, kbn, eck (combinable with \`|\`, e.g. es|kbn)`)
               if (type && comp) entries.push({ type, components: comp, text: m.groups.text })
             })
 
