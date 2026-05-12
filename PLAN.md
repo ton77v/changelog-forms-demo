@@ -63,11 +63,19 @@ gh label create changelog-entry --repo {owner}/{repo} \
   --description "Auto-applied by Changelog entry form" --color 0E8A16
 ```
 
-### 3. (Optional) Disable blank issues
+### 3. Delete branch on merge
+
+`peter-evans/create-pull-request@v6`'s `delete-branch: true` only fires when peter-evans closes the PR — GitHub auto-merge and UI merges leave the branch behind. Enable the repo-level setting instead, which applies regardless of merge path:
+
+```bash
+gh api -X PATCH repos/{owner}/{repo} -F delete_branch_on_merge=true
+```
+
+### 4. (Optional) Disable blank issues
 
 `.github/ISSUE_TEMPLATE/config.yml` should have `blank_issues_enabled: false`. GitHub's native "Maintainers only" badge appears on Blank issue under this setting; can't be applied to custom forms.
 
-### 4. (Optional, recommended for prod once trusted) Auto-merge
+### 5. (Optional, recommended for prod once trusted) Auto-merge
 
 Configured in `.github/changelog-config.yml` — `auto_merge: true` makes form-opened PRs auto-merge once required checks pass.
 
