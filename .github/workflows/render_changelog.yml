@@ -84,7 +84,10 @@ jobs:
               warning: '⚠️Warning',
               enhancement: '🧐Enhancement',
             }
-            const compStr = (cs) => cs.map(c => c.toUpperCase()).join('|')
+            // `components_raw` (optional) preserves original separator/order for migrated entries
+            // — required for hash parity with ror-api's stored LLM descriptions. New form-driven
+            // entries omit it; renderer falls back to canonical `ES|KBN` join.
+            const compStr = (e) => e.components_raw || e.components.map(c => c.toUpperCase()).join('|')
 
             let md = '# Changelog\n\n'
             md += '<!-- AUTO-GENERATED from changelog/*.yaml — do not edit directly -->\n\n'
@@ -92,7 +95,7 @@ jobs:
               md += `### (${r.release_date}) What's new in **ROR ${r.version}**\n`
               for (const e of r.entries) {
                 const label = TYPE_EMOJI[e.type] || e.type
-                md += `* **${label}** (${compStr(e.components)}) ${e.text}\n`
+                md += `* **${label}** (${compStr(e)}) ${e.text}\n`
               }
               md += '\n'
             }
